@@ -1,0 +1,4 @@
+Render Passes:
+- https://community.khronos.org/t/understanding-subpass-memory-dependencies/6956
+- You can use multiple frag shaders in the same render pass
+  -> Material combination?

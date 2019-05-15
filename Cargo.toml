@@ -1,0 +1,27 @@
+[package]
+name = "evemap"
+version = "0.1.0"
+authors = ["David Soria Parra <dsp@experimentalworks.net>"]
+edition = "2018"
+
+[features]
+default = []
+vulkan = ["gfx-backend-vulkan"]
+gl = ["gfx-backend-gl"]
+
+[dependencies]
+env_logger = "*"
+gfx = "*"
+gfx-hal = "*"
+log = "*"
+winit = "*"
+glsl-to-spirv = "*"
+image = "*"
+
+[dependencies.gfx-backend-vulkan]
+version = "*"
+optional = true
+
+[dependencies.gfx-backend-gl]
+version = "*"
+optional = true
