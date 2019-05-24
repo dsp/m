@@ -25,19 +25,16 @@ use gfx_hal as hal;
 
 // use glsl_to_spirv;
 // use image;
+use log::debug;
 use winit;
-use log::{debug};
 
 use hal::format::{ChannelType, Swizzle};
 use hal::pass::Subpass;
-use hal::pso::{PipelineStage};
+use hal::pso::PipelineStage;
 use hal::queue::Submission;
-use hal::{
-    command, format as f, image as i, pass, pool, pso, window::Extent2D,
-};
-use hal::{Primitive, SwapchainConfig};
+use hal::{command, format as f, image as i, pass, pool, pso, window::Extent2D};
 use hal::{Device, Instance, PhysicalDevice, Surface, Swapchain};
-
+use hal::{Primitive, SwapchainConfig};
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const DIMS: Extent2D = Extent2D { width: 800, height: 600 };
@@ -65,18 +62,17 @@ const COLOR_RANGE: i::SubresourceRange = i::SubresourceRange {
     feature = "gl"
 ))]
 
-
 fn get_dimensions(window: &winit::Window) -> Extent2D {
-	DIMS
-	// let dpi_factor = window.get_available_monitors().last().unwrap().get_hidpi_factor();
-	// debug!("{:?}", dpi_factor);
-	// let logical_size = window.get_outer_size().unwrap();
-	// let physical = logical_size.to_physical(dpi_factor);
-	// debug!("{:?}", physical);
-	// Extent2D {
-	// 	width: physical.width as _,
-	// 	height: physical.height as _,
-	// }
+    DIMS
+    // let dpi_factor = window.get_available_monitors().last().unwrap().get_hidpi_factor();
+    // debug!("{:?}", dpi_factor);
+    // let logical_size = window.get_outer_size().unwrap();
+    // let physical = logical_size.to_physical(dpi_factor);
+    // debug!("{:?}", physical);
+    // Extent2D {
+    // 	width: physical.width as _,
+    // 	height: physical.height as _,
+    // }
 }
 
 fn main() {
@@ -87,8 +83,8 @@ fn main() {
         .with_dimensions(winit::dpi::LogicalSize::new(
             DIMS.width as _,
             DIMS.height as _,
-    	))
-    	.with_transparency(false)
+        ))
+        .with_transparency(false)
         .with_title("evemap".to_string());
 
     // instantiate backend
@@ -126,7 +122,9 @@ fn main() {
 
     // Build a new device and associated command queues
     let (device, mut queue_group) = adapter
-        .open_with::<_, hal::queue::capability::Graphics>(1, |family| surface.supports_queue_family(family))
+        .open_with::<_, hal::queue::capability::Graphics>(1, |family| {
+            surface.supports_queue_family(family)
+        })
         .unwrap();
 
     let mut command_pool = unsafe {
@@ -146,34 +144,37 @@ fn main() {
     };
 
     let render_pass = {
-    	let color_attachment = pass::Attachment {
-    		format: Some(format),
-    		samples: 1,
-    		ops: pass::AttachmentOps::new(
-    			pass::AttachmentLoadOp::Clear,
-    			pass::AttachmentStoreOp::Store,
-    		),
-    		stencil_ops: pass::AttachmentOps::DONT_CARE,
-    		layouts: i::Layout::Undefined..i::Layout::Present,
-    	};
+        let color_attachment = pass::Attachment {
+            format: Some(format),
+            samples: 1,
+            ops: pass::AttachmentOps::new(
+                pass::AttachmentLoadOp::Clear,
+                pass::AttachmentStoreOp::Store,
+            ),
+            stencil_ops: pass::AttachmentOps::DONT_CARE,
+            layouts: i::Layout::Undefined..i::Layout::Present,
+        };
 
-    	let subpass = pass::SubpassDesc {
-    		colors: &[(0, i::Layout::ColorAttachmentOptimal)],
-    		depth_stencil: None,
-    		inputs: &[],
-    		resolves: &[],
-    		preserves: &[],
-    	};
+        let subpass = pass::SubpassDesc {
+            colors: &[(0, i::Layout::ColorAttachmentOptimal)],
+            depth_stencil: None,
+            inputs: &[],
+            resolves: &[],
+            preserves: &[],
+        };
 
-    	let dependency = pass::SubpassDependency {
-    		passes: pass::SubpassRef::External..pass::SubpassRef::Pass(0),
-    		stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
-    		accesses: i::Access::empty()..(i::Access::COLOR_ATTACHMENT_READ | i::Access::COLOR_ATTACHMENT_WRITE),
-    	};
+        let dependency = pass::SubpassDependency {
+            passes: pass::SubpassRef::External..pass::SubpassRef::Pass(0),
+            stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
+            accesses: i::Access::empty()
+                ..(i::Access::COLOR_ATTACHMENT_READ | i::Access::COLOR_ATTACHMENT_WRITE),
+        };
 
-    	unsafe {
-    		device.create_render_pass(&[color_attachment], &[subpass], &[dependency]).expect("Can't create render pass")
-    	}
+        unsafe {
+            device
+                .create_render_pass(&[color_attachment], &[subpass], &[dependency])
+                .expect("Can't create render pass")
+        }
     };
 
     // The pipeline layout defines the shape of the data you can send to a shader.
@@ -182,56 +183,62 @@ fn main() {
     let pipeline_layout = unsafe { device.create_pipeline_layout(&[], &[]).unwrap() };
 
     let vs_module = unsafe {
-    	device.create_shader_module(include_bytes!("assets/shaders/simple_triangle/vert.spv")).unwrap()
+        device
+            .create_shader_module(include_bytes!("assets/shaders/simple_triangle/vert.spv"))
+            .unwrap()
     };
 
     let fs_module = unsafe {
-    	device.create_shader_module(include_bytes!("assets/shaders/simple_triangle/frag.spv")).unwrap()
+        device
+            .create_shader_module(include_bytes!("assets/shaders/simple_triangle/frag.spv"))
+            .unwrap()
     };
 
     let pipeline = {
-    	let (vs_entry, fs_entry) = (
-    		pso::EntryPoint {
-    			entry: ENTRY_NAME,
-    			module: &vs_module,
-    			specialization: Default::default(),
-    		},
-    		pso::EntryPoint {
-    			entry: ENTRY_NAME,
-    			module: &fs_module,
-    			specialization: Default::default(),
-    		},
-    	);
+        let (vs_entry, fs_entry) = (
+            pso::EntryPoint {
+                entry: ENTRY_NAME,
+                module: &vs_module,
+                specialization: Default::default(),
+            },
+            pso::EntryPoint {
+                entry: ENTRY_NAME,
+                module: &fs_module,
+                specialization: Default::default(),
+            },
+        );
 
-    	let shader_entries = pso::GraphicsShaderSet {
-    		vertex: vs_entry,
-    		hull: None,
-    		domain: None,
-    		geometry: None,
-    		fragment: Some(fs_entry)
-    	};
+        let shader_entries = pso::GraphicsShaderSet {
+            vertex: vs_entry,
+            hull: None,
+            domain: None,
+            geometry: None,
+            fragment: Some(fs_entry),
+        };
 
-    	let subpass = Subpass {
-    		index: 0,
-    		main_pass: &render_pass,
-    	};
+        let subpass = Subpass {
+            index: 0,
+            main_pass: &render_pass,
+        };
 
-    	let mut pipeline_desc = pso::GraphicsPipelineDesc::new(
-    		shader_entries,
-    		Primitive::TriangleList,
-    		pso::Rasterizer::FILL,
-    		&pipeline_layout,
-    		subpass,
-    	);
+        let mut pipeline_desc = pso::GraphicsPipelineDesc::new(
+            shader_entries,
+            Primitive::TriangleList,
+            pso::Rasterizer::FILL,
+            &pipeline_layout,
+            subpass,
+        );
 
-    	pipeline_desc
-    		.blender
-    		.targets
-    		.push(pso::ColorBlendDesc(pso::ColorMask::ALL, pso::BlendState::ALPHA));
+        pipeline_desc.blender.targets.push(pso::ColorBlendDesc(
+            pso::ColorMask::ALL,
+            pso::BlendState::ALPHA,
+        ));
 
-		unsafe {
-	    	device.create_graphics_pipeline(&pipeline_desc, None).unwrap()
-	    }
+        unsafe {
+            device
+                .create_graphics_pipeline(&pipeline_desc, None)
+                .unwrap()
+        }
     };
 
     // Initialize our swapchain, images, framebuffers, etc.
@@ -299,7 +306,7 @@ fn main() {
         (pairs, fbos)
     };
 
-debug!("{:?} {:?}", frameviews, framebuffers);
+    debug!("{:?} {:?}", frameviews, framebuffers);
     // The frame semaphore is used to allow us to wait for an image to be ready
     // before attempting to draw on it,
     //
@@ -315,8 +322,8 @@ debug!("{:?} {:?}", frameviews, framebuffers);
         events_loop.poll_events(|event| {
             if let winit::Event::WindowEvent { event, .. } = event {
                 match event {
-                	// IF RESIZE WE NEED TO RECREATE SWAPCHAIN, SEE: 
-                	// https://github.com/gfx-rs/gfx/blob/master/examples/quad/main.rs#L660
+                    // IF RESIZE WE NEED TO RECREATE SWAPCHAIN, SEE:
+                    // https://github.com/gfx-rs/gfx/blob/master/examples/quad/main.rs#L660
                     winit::WindowEvent::CloseRequested => quitting = true,
                     winit::WindowEvent::KeyboardInput {
                         input:
@@ -335,21 +342,22 @@ debug!("{:?} {:?}", frameviews, framebuffers);
             break;
         }
 
-        unsafe { command_pool.reset(); }
+        unsafe {
+            command_pool.reset();
+        }
 
         // A swapchain contains multiple images - which one should we draw on? This
         // returns the index of the image we'll use. The image may not be ready for
         // rendering yet, but will signal frame_semaphore when it is.
         let frame_index = unsafe {
-        	match swapchain.acquire_image(!0, Some(&frame_semaphore), None) {
+            match swapchain.acquire_image(!0, Some(&frame_semaphore), None) {
                 Ok((i, _)) => i as usize,
                 Err(_) => {
                     // recreate_swapchain = true;
                     continue;
                 }
             }
-		};
-
+        };
 
         // We have to build a command buffer before we send it off to draw.
         // We don't technically have to do this every frame, but if it needs to
@@ -369,82 +377,81 @@ debug!("{:?} {:?}", frameviews, framebuffers);
                 depth: 0.0..1.0,
             };
 
-			unsafe {
-	            command_buffer.begin();
+            unsafe {
+                command_buffer.begin();
 
-	            command_buffer.set_viewports(0, &[viewport.clone()]);
-	            command_buffer.set_scissors(0, &[viewport.rect]);
+                command_buffer.set_viewports(0, &[viewport.clone()]);
+                command_buffer.set_scissors(0, &[viewport.rect]);
 
-	            // Choose a pipeline to use.
-	            command_buffer.bind_graphics_pipeline(&pipeline);
+                // Choose a pipeline to use.
+                command_buffer.bind_graphics_pipeline(&pipeline);
 
-	            {
-	                // Clear the screen and begin the render pass.
-	                let mut encoder = command_buffer.begin_render_pass_inline(
-	                    &render_pass,
-	                    &framebuffers[frame_index],
-	                    viewport.rect,
-	                    &[command::ClearValue::Color(command::ClearColor::Float([0.0, 0.0, 0.0, 1.0]))],
-	                );
+                {
+                    // Clear the screen and begin the render pass.
+                    let mut encoder = command_buffer.begin_render_pass_inline(
+                        &render_pass,
+                        &framebuffers[frame_index],
+                        viewport.rect,
+                        &[command::ClearValue::Color(command::ClearColor::Float([
+                            0.0, 0.0, 0.0, 1.0,
+                        ]))],
+                    );
 
-	                // Draw some geometry! In this case 0..3 means that we're drawing
-	                // the range of vertices from 0 to 3. We have no vertex buffer so
-	                // this really just tells our shader to draw one triangle. The
-	                // specific vertices to draw are encoded in the vertex shader which
-	                // you can see in `source_assets/shaders/part00.vert`.
-	                //
-	                // The 0..1 is the range of instances to draw. It's not relevant
-	                // unless you're using instanced rendering.
-	                encoder.draw(0..3, 0..1);
-	            }
+                    // Draw some geometry! In this case 0..3 means that we're drawing
+                    // the range of vertices from 0 to 3. We have no vertex buffer so
+                    // this really just tells our shader to draw one triangle. The
+                    // specific vertices to draw are encoded in the vertex shader which
+                    // you can see in `source_assets/shaders/part00.vert`.
+                    //
+                    // The 0..1 is the range of instances to draw. It's not relevant
+                    // unless you're using instanced rendering.
+                    encoder.draw(0..3, 0..1);
+                }
 
-	            // Finish building the command buffer - it's now ready to send to the
-	            // GPU.
-	            command_buffer.finish()
-	        }
+                // Finish building the command buffer - it's now ready to send to the
+                // GPU.
+                command_buffer.finish()
+            }
 
-	        command_buffer
+            command_buffer
         };
 
         // This is what we submit to the command queue. We wait until frame_semaphore
         // is signalled, at which point we know our chosen image is available to draw
         // on.
         let submission = Submission {
-        	command_buffers: Some(&finished_command_buffer),
-        	wait_semaphores: Some((
-        		&frame_semaphore,
-        		PipelineStage::BOTTOM_OF_PIPE
-        	)),
-        	signal_semaphores: Some(&present_semaphore),
+            command_buffers: Some(&finished_command_buffer),
+            wait_semaphores: Some((&frame_semaphore, PipelineStage::BOTTOM_OF_PIPE)),
+            signal_semaphores: Some(&present_semaphore),
         };
 
         // We submit the submission to one of our command queues, which will signal
         // frame_fence once rendering is completed.
         unsafe {
-        queue_group.queues[0].submit(submission, None);
+            queue_group.queues[0].submit(submission, None);
 
-        // We first wait for the rendering to complete...
-        // TODO: Fix up for semaphores
+            // We first wait for the rendering to complete...
+            // TODO: Fix up for semaphores
 
-        // ...and then present the image on screen!
-        swapchain
-            .present(
-                &mut queue_group.queues[0],
-                frame_index as u32,
-                vec![&present_semaphore],
-            )
-            .expect("Present failed");
+            // ...and then present the image on screen!
+            swapchain
+                .present(
+                    &mut queue_group.queues[0],
+                    frame_index as u32,
+                    vec![&present_semaphore],
+                )
+                .expect("Present failed");
         }
     }
 
     device.wait_idle().unwrap();
     unsafe {
-    	device.destroy_semaphore(frame_semaphore);
-    	device.destroy_semaphore(present_semaphore);
-    	device.destroy_command_pool(command_pool.into_raw());
-    	device.destroy_render_pass(render_pass);
-    	device.destroy_graphics_pipeline(pipeline);
-    	device.destroy_pipeline_layout(pipeline_layout);
+        device.destroy_semaphore(frame_semaphore);
+        device.destroy_semaphore(present_semaphore);
+        device.destroy_command_pool(command_pool.into_raw());
+        device.destroy_render_pass(render_pass);
+        device.destroy_graphics_pipeline(pipeline);
+        device.destroy_pipeline_layout(pipeline_layout);
         for framebuffer in framebuffers {
             device.destroy_framebuffer(framebuffer);
         }
