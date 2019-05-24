@@ -1,13 +1,8 @@
 [package]
-name = "evemap"
+name = "renderer"
 version = "0.1.0"
-authors = ["David Soria Parra <dsp@experimentalworks.net>"]
+authors = ["dsp"]
 edition = "2018"
-
-[features]
-default = []
-vulkan = ["gfx-backend-vulkan"]
-gl = ["gfx-backend-gl"]
 
 [dependencies]
 env_logger = "*"
@@ -17,7 +12,6 @@ log = "*"
 winit = "*"
 glsl-to-spirv = "*"
 image = "*"
-renderer = { path = "renderer/" }
 
 [dependencies.gfx-backend-vulkan]
 version = "*"
@@ -26,6 +20,3 @@ optional = true
 [dependencies.gfx-backend-gl]
 version = "*"
 optional = true
-
-[workspace]
-members = ["renderer"]

@@ -27,6 +27,7 @@ use gfx_hal as hal;
 // use image;
 use log::debug;
 use winit;
+use renderer;
 
 use hal::format::{ChannelType, Swizzle};
 use hal::pass::Subpass;
@@ -133,8 +134,10 @@ fn main() {
     .expect("Can't create command pool");
 
     let (caps, formats, _present_modes) = surface.compatibility(&mut adapter.physical_device);
+
     debug!("formats: {:?}", formats);
     debug!("capabilities: {:?}", caps);
+
     let format = match formats {
         Some(choices) => choices
             .into_iter()
@@ -143,103 +146,10 @@ fn main() {
         None => f::Format::Rgba8Srgb,
     };
 
-    let render_pass = {
-        let color_attachment = pass::Attachment {
-            format: Some(format),
-            samples: 1,
-            ops: pass::AttachmentOps::new(
-                pass::AttachmentLoadOp::Clear,
-                pass::AttachmentStoreOp::Store,
-            ),
-            stencil_ops: pass::AttachmentOps::DONT_CARE,
-            layouts: i::Layout::Undefined..i::Layout::Present,
-        };
-
-        let subpass = pass::SubpassDesc {
-            colors: &[(0, i::Layout::ColorAttachmentOptimal)],
-            depth_stencil: None,
-            inputs: &[],
-            resolves: &[],
-            preserves: &[],
-        };
-
-        let dependency = pass::SubpassDependency {
-            passes: pass::SubpassRef::External..pass::SubpassRef::Pass(0),
-            stages: PipelineStage::COLOR_ATTACHMENT_OUTPUT..PipelineStage::COLOR_ATTACHMENT_OUTPUT,
-            accesses: i::Access::empty()
-                ..(i::Access::COLOR_ATTACHMENT_READ | i::Access::COLOR_ATTACHMENT_WRITE),
-        };
-
-        unsafe {
-            device
-                .create_render_pass(&[color_attachment], &[subpass], &[dependency])
-                .expect("Can't create render pass")
-        }
-    };
-
-    // The pipeline layout defines the shape of the data you can send to a shader.
-    // This includes the number of uniforms and push constants. We don't need them
-    // for now.
-    let pipeline_layout = unsafe { device.create_pipeline_layout(&[], &[]).unwrap() };
-
-    let vs_module = unsafe {
-        device
-            .create_shader_module(include_bytes!("assets/shaders/simple_triangle/vert.spv"))
-            .unwrap()
-    };
-
-    let fs_module = unsafe {
-        device
-            .create_shader_module(include_bytes!("assets/shaders/simple_triangle/frag.spv"))
-            .unwrap()
-    };
-
-    let pipeline = {
-        let (vs_entry, fs_entry) = (
-            pso::EntryPoint {
-                entry: ENTRY_NAME,
-                module: &vs_module,
-                specialization: Default::default(),
-            },
-            pso::EntryPoint {
-                entry: ENTRY_NAME,
-                module: &fs_module,
-                specialization: Default::default(),
-            },
-        );
-
-        let shader_entries = pso::GraphicsShaderSet {
-            vertex: vs_entry,
-            hull: None,
-            domain: None,
-            geometry: None,
-            fragment: Some(fs_entry),
-        };
-
-        let subpass = Subpass {
-            index: 0,
-            main_pass: &render_pass,
-        };
-
-        let mut pipeline_desc = pso::GraphicsPipelineDesc::new(
-            shader_entries,
-            Primitive::TriangleList,
-            pso::Rasterizer::FILL,
-            &pipeline_layout,
-            subpass,
-        );
-
-        pipeline_desc.blender.targets.push(pso::ColorBlendDesc(
-            pso::ColorMask::ALL,
-            pso::BlendState::ALPHA,
-        ));
-
-        unsafe {
-            device
-                .create_graphics_pipeline(&pipeline_desc, None)
-                .unwrap()
-        }
-    };
+    let task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
+    debug!("before gen pipeline");
+    let pipeline = task.gen();
+    debug!("after gen pipeline");
 
     // Initialize our swapchain, images, framebuffers, etc.
     // We expect to have to rebuild these when the window is resized -
@@ -264,6 +174,7 @@ fn main() {
             .expect("Can't create swapchain");
 
     debug!("{:?}", backbuffer);
+
     // You can think of an image as just the raw binary of the literal image, with
     // additional metadata about the format.
     //
@@ -299,14 +210,13 @@ fn main() {
             .iter()
             .map(|&(_, ref rtv)| unsafe {
                 device
-                    .create_framebuffer(&render_pass, Some(rtv), extent)
+                    .create_framebuffer(&task.render_pass, Some(rtv), extent)
                     .unwrap()
             })
             .collect::<Vec<_>>();
         (pairs, fbos)
     };
 
-    debug!("{:?} {:?}", frameviews, framebuffers);
     // The frame semaphore is used to allow us to wait for an image to be ready
     // before attempting to draw on it,
     //
@@ -389,7 +299,7 @@ fn main() {
                 {
                     // Clear the screen and begin the render pass.
                     let mut encoder = command_buffer.begin_render_pass_inline(
-                        &render_pass,
+                        &task.render_pass,
                         &framebuffers[frame_index],
                         viewport.rect,
                         &[command::ClearValue::Color(command::ClearColor::Float([
@@ -449,9 +359,9 @@ fn main() {
         device.destroy_semaphore(frame_semaphore);
         device.destroy_semaphore(present_semaphore);
         device.destroy_command_pool(command_pool.into_raw());
-        device.destroy_render_pass(render_pass);
+        device.destroy_render_pass(task.render_pass);
         device.destroy_graphics_pipeline(pipeline);
-        device.destroy_pipeline_layout(pipeline_layout);
+        device.destroy_pipeline_layout(task.pipeline_layout);
         for framebuffer in framebuffers {
             device.destroy_framebuffer(framebuffer);
         }
