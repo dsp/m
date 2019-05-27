@@ -1,5 +1,6 @@
 mod shader;
 
+use shader::*;
 use gfx_hal as hal;
 use hal::Primitive;
 use hal::{device::Device, format as f, image as i, pass, pso};
@@ -15,6 +16,8 @@ where
     pub pipeline: <B as hal::Backend>::GraphicsPipeline,
     pub render_pass: <B as hal::Backend>::RenderPass,
     pub pipeline_layout: <B as hal::Backend>::PipelineLayout,
+    vs: Shader,
+    fs: Shader,
 }
 
 impl<'a, B: hal::Backend> RenderTask<'a, B> {
@@ -54,6 +57,9 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
                 ..(i::Access::COLOR_ATTACHMENT_READ | i::Access::COLOR_ATTACHMENT_WRITE),
         };
 
+        let mut vs = Shader::from_path("assets/shaders/simple_triangle/simple.vert.glsl".into(), ShaderType::Vertex);
+        let mut fs = Shader::from_path("assets/shaders/simple_triangle/simple.frag.glsl".into(), ShaderType::Fragment);
+
         let render_pass = unsafe {
             device
                 .create_render_pass(&[color_attachment], &[subpass], &[dependency])
@@ -64,17 +70,12 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
 
         let vs_module = unsafe {
             device
-                .create_shader_module(include_bytes!(
-                    "../../assets/shaders/simple_triangle/vert.spv"
-                ))
-                .unwrap()
+                .create_shader_module(&vs.spirv().expect("can't load shader")) .unwrap()
         };
 
         let fs_module = unsafe {
             device
-                .create_shader_module(include_bytes!(
-                    "../../assets/shaders/simple_triangle/frag.spv"
-                ))
+                .create_shader_module(&fs.spirv().expect("can't load shader"))
                 .unwrap()
         };
 
@@ -131,6 +132,7 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
             render_pass,
             pipeline_layout,
             pipeline,
+            fs,vs,
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
 
 type SpirvBytecode = Vec<u8>;
 
@@ -9,24 +10,49 @@ pub enum ShaderType {
     Fragment,
 }
 
+struct PathInfo(PathBuf, SystemTime);
+
 pub struct Shader {
-    spirv: SpirvBytecode,
+    spirv: Option<SpirvBytecode>,
     shader_type: ShaderType,
-    path: Option<PathBuf>,
+    pathinfo: PathInfo,
 }
 
 impl Shader {
-    pub fn new(spirv: SpirvBytecode, shader_type: ShaderType) -> Self {
-        Self { spirv, shader_type, path: None }
+    pub fn from_path(path: PathBuf, shader_type: ShaderType) ->  Self {
+        Self {
+            spirv: None,
+            shader_type: shader_type,
+            pathinfo: PathInfo(path, SystemTime::now()),
+        }
     }
 
-    pub fn from_path(path: PathBuf, shader_type: ShaderType) -> std::io::Result<Self> {
-        Ok(Self {
-            spirv: Self::compile(&path, &shader_type)?,
-            shader_type: shader_type,
-            path: Some(path),
-        })
+    pub fn spirv(&mut self) -> std::io::Result<SpirvBytecode> {
+        match self.spirv {
+            Some(_) => {
+                if self.outdated()? {
+                    let bytecode = Self::compile(&self.pathinfo.0, &self.shader_type)?;
+                    self.spirv = Some(bytecode);
+                }
+            },
+            None => {
+                let bytecode = Self::compile(&self.pathinfo.0, &self.shader_type)?;
+                self.spirv = Some(bytecode);
+            }
+        };
+
+        Ok(self.spirv.as_ref().unwrap().clone())
     }
+
+    pub fn outdated(&self) -> std::io::Result<bool> {
+        let metadata = fs::metadata(&self.pathinfo.0)?;
+        let last_modified = metadata.modified()?;
+        let delta = SystemTime::now().duration_since(last_modified).unwrap();
+
+        Ok(delta > Duration::from_millis(50))
+    }
+
+    // Helper functions
 
     fn compile(path: &Path, shader_type: &ShaderType) -> std::io::Result<SpirvBytecode> {
         let glsl = fs::read_to_string(path)?;
@@ -43,18 +69,8 @@ impl Shader {
 
         Ok(spirv)
     }
-               
-    pub fn spirv(&mut self) -> std::io::Result<SpirvBytecode> {
-        if self.must_reload() {
-            if let Some(path) = &self.path {
-                self.spirv = Self::compile(&path, &self.shader_type)?;
-            }
-        }
-
-        Ok(self.spirv.clone())
-    }
-
-    fn must_reload(&self) -> bool {
-        false
-    }
 }
+
+pub struct ShaderManager {
+}
+
