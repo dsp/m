@@ -19,7 +19,7 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn from_path(path: PathBuf, shader_type: ShaderType) ->  Self {
+    pub fn from_path(path: PathBuf, shader_type: ShaderType) -> Self {
         Self {
             spirv: None,
             shader_type: shader_type,
@@ -34,7 +34,7 @@ impl Shader {
                     let bytecode = Self::compile(&self.pathinfo.0, &self.shader_type)?;
                     self.spirv = Some(bytecode);
                 }
-            },
+            }
             None => {
                 let bytecode = Self::compile(&self.pathinfo.0, &self.shader_type)?;
                 self.spirv = Some(bytecode);
@@ -71,6 +71,4 @@ impl Shader {
     }
 }
 
-pub struct ShaderManager {
-}
-
+pub struct ShaderManager {}

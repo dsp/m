@@ -32,9 +32,9 @@ use winit;
 use hal::format::{ChannelType, Swizzle};
 use hal::pso::PipelineStage;
 use hal::queue::Submission;
+use hal::SwapchainConfig;
 use hal::{command, format as f, image as i, pool, pso, window::Extent2D};
 use hal::{Device, Instance, Surface, Swapchain};
-use hal::{SwapchainConfig};
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const DIMS: Extent2D = Extent2D { width: 800, height: 600 };
@@ -64,7 +64,6 @@ fn get_dimensions(_window: &winit::Window) -> Extent2D {
     // 	height: physical.height as _,
     // }
 }
-
 
 #[cfg(any(
     feature = "vulkan",
