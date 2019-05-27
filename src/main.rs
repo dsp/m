@@ -30,17 +30,14 @@ use renderer;
 use winit;
 
 use hal::format::{ChannelType, Swizzle};
-use hal::pass::Subpass;
 use hal::pso::PipelineStage;
 use hal::queue::Submission;
-use hal::{command, format as f, image as i, pass, pool, pso, window::Extent2D};
-use hal::{Device, Instance, PhysicalDevice, Surface, Swapchain};
-use hal::{Primitive, SwapchainConfig};
+use hal::{command, format as f, image as i, pool, pso, window::Extent2D};
+use hal::{Device, Instance, Surface, Swapchain};
+use hal::{SwapchainConfig};
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 const DIMS: Extent2D = Extent2D { width: 800, height: 600 };
-
-const ENTRY_NAME: &str = "main";
 
 #[derive(Debug, Clone, Copy)]
 #[allow(non_snake_case)]
@@ -55,7 +52,7 @@ const COLOR_RANGE: i::SubresourceRange = i::SubresourceRange {
     layers: 0..1,
 };
 
-fn get_dimensions(window: &winit::Window) -> Extent2D {
+fn get_dimensions(_window: &winit::Window) -> Extent2D {
     DIMS
     // let dpi_factor = window.get_available_monitors().last().unwrap().get_hidpi_factor();
     // debug!("{:?}", dpi_factor);
