@@ -1,3 +1,5 @@
+mod shader;
+
 use gfx_hal as hal;
 use hal::Primitive;
 use hal::{device::Device, format as f, image as i, pass, pso};
