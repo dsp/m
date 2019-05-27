@@ -26,8 +26,8 @@ use gfx_hal as hal;
 // use glsl_to_spirv;
 // use image;
 use log::debug;
-use winit;
 use renderer;
+use winit;
 
 use hal::format::{ChannelType, Swizzle};
 use hal::pass::Subpass;
@@ -147,9 +147,6 @@ fn main() {
     };
 
     let task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
-    debug!("before gen pipeline");
-    let pipeline = task.gen();
-    debug!("after gen pipeline");
 
     // Initialize our swapchain, images, framebuffers, etc.
     // We expect to have to rebuild these when the window is resized -
@@ -294,7 +291,7 @@ fn main() {
                 command_buffer.set_scissors(0, &[viewport.rect]);
 
                 // Choose a pipeline to use.
-                command_buffer.bind_graphics_pipeline(&pipeline);
+                command_buffer.bind_graphics_pipeline(&task.pipeline);
 
                 {
                     // Clear the screen and begin the render pass.
@@ -359,9 +356,7 @@ fn main() {
         device.destroy_semaphore(frame_semaphore);
         device.destroy_semaphore(present_semaphore);
         device.destroy_command_pool(command_pool.into_raw());
-        device.destroy_render_pass(task.render_pass);
-        device.destroy_graphics_pipeline(pipeline);
-        device.destroy_pipeline_layout(task.pipeline_layout);
+        renderer::RenderTask::destroy(task);
         for framebuffer in framebuffers {
             device.destroy_framebuffer(framebuffer);
         }
