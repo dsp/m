@@ -55,14 +55,6 @@ const COLOR_RANGE: i::SubresourceRange = i::SubresourceRange {
     layers: 0..1,
 };
 
-#[cfg(any(
-    feature = "vulkan",
-    feature = "dx11",
-    feature = "dx12",
-    feature = "metal",
-    feature = "gl"
-))]
-
 fn get_dimensions(window: &winit::Window) -> Extent2D {
     DIMS
     // let dpi_factor = window.get_available_monitors().last().unwrap().get_hidpi_factor();
@@ -76,6 +68,14 @@ fn get_dimensions(window: &winit::Window) -> Extent2D {
     // }
 }
 
+
+#[cfg(any(
+    feature = "vulkan",
+    feature = "dx11",
+    feature = "dx12",
+    feature = "metal",
+    feature = "gl"
+))]
 fn main() {
     env_logger::init();
 
