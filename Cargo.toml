@@ -28,4 +28,4 @@ version = "*"
 optional = true
 
 [workspace]
-members = ["renderer"]
+members = ["renderer", "utils"]
