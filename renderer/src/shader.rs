@@ -71,4 +71,28 @@ impl Shader {
     }
 }
 
+struct ShaderPaths {
+    vs: &'static str,
+    fs: &'static str,
+}
+
+static SHADERS: &'static [(&'static str, ShaderPaths)] = &[(
+    "simple_triangle",
+    ShaderPaths {
+        vs: "assets/shaders/simple_triangle/simple.vert.glsl",
+        fs: "assets/shaders/simple_triangle/simple.frag.glsl",
+    },
+)];
+
 pub struct ShaderManager {}
+
+impl ShaderManager {
+    pub fn from_name(name: &str, shader_type: ShaderType) -> Shader {
+        let idx = SHADERS.binary_search_by(|e| e.0.cmp(name)).unwrap();
+        let paths = &SHADERS[idx].1;
+        match shader_type {
+            ShaderType::Vertex => Shader::from_path(paths.vs.into(), ShaderType::Vertex),
+            ShaderType::Fragment => Shader::from_path(paths.fs.into(), ShaderType::Fragment),
+        }
+    }
+}

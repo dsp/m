@@ -57,14 +57,8 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
                 ..(i::Access::COLOR_ATTACHMENT_READ | i::Access::COLOR_ATTACHMENT_WRITE),
         };
 
-        let mut vs = Shader::from_path(
-            "assets/shaders/simple_triangle/simple.vert.glsl".into(),
-            ShaderType::Vertex,
-        );
-        let mut fs = Shader::from_path(
-            "assets/shaders/simple_triangle/simple.frag.glsl".into(),
-            ShaderType::Fragment,
-        );
+        let mut vs = ShaderManager::from_name("simple_triangle", ShaderType::Vertex);
+        let mut fs = ShaderManager::from_name("simple_triangle", ShaderType::Fragment);
 
         let render_pass = unsafe {
             device
