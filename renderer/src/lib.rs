@@ -4,6 +4,7 @@ use gfx_hal as hal;
 use hal::Primitive;
 use hal::{device::Device, format as f, image as i, pass, pso};
 use shader::*;
+use utils::*;
 
 const ENTRY_NAME: &str = "main";
 
@@ -13,22 +14,24 @@ where
 {
     device: &'a B::Device,
     format: f::Format,
-    pub pipeline: <B as hal::Backend>::GraphicsPipeline,
-    pub render_pass: <B as hal::Backend>::RenderPass,
-    pub pipeline_layout: <B as hal::Backend>::PipelineLayout,
+    pub pipeline: Owned<<B as hal::Backend>::GraphicsPipeline>,
+    pub render_pass: Owned<<B as hal::Backend>::RenderPass>,
+    pub pipeline_layout: Owned<<B as hal::Backend>::PipelineLayout>,
     vs: Shader,
     fs: Shader,
 }
 
-impl<'a, B: hal::Backend> RenderTask<'a, B> {
-    pub fn destroy(task: Self) {
+impl<'a, B: hal::Backend> Drop for RenderTask<'a, B> {
+    fn drop(&mut self) {
         unsafe {
-            task.device.destroy_graphics_pipeline(task.pipeline);
-            task.device.destroy_render_pass(task.render_pass);
-            task.device.destroy_pipeline_layout(task.pipeline_layout);
+            self.device.destroy_graphics_pipeline(self.pipeline.take());
+            self.device.destroy_render_pass(self.render_pass.take());
+            self.device.destroy_pipeline_layout(self.pipeline_layout.take());
         }
     }
+}
 
+impl<'a, B: hal::Backend> RenderTask<'a, B> {
     pub fn new(device: &'a B::Device, format: f::Format) -> Self {
         let color_attachment = pass::Attachment {
             format: Some(format),
@@ -130,12 +133,24 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
         Self {
             device,
             format,
-            render_pass,
-            pipeline_layout,
-            pipeline,
+            render_pass: Mine(render_pass),
+            pipeline_layout: Mine(pipeline_layout),
+            pipeline: Mine(pipeline),
             fs,
             vs,
         }
+    }
+
+    pub fn render_pass(&self) -> &<B as hal::Backend>::RenderPass {
+        self.render_pass.as_ref()
+    }
+
+    pub fn pipeline_layout(&self) -> &<B as hal::Backend>::PipelineLayout {
+        self.pipeline_layout.as_ref()
+    }
+
+    pub fn pipeline(&self) -> &<B as hal::Backend>::GraphicsPipeline {
+        self.pipeline.as_ref()
     }
 }
 

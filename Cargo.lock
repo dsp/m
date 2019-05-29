@@ -1027,6 +1027,7 @@ dependencies = [
  "glsl-to-spirv 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "utils 0.1.0",
  "winit 0.19.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

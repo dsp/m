@@ -1,3 +1,5 @@
+pub use Owned::*;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum WatchStatus {
     NeedsUpdate,
@@ -33,6 +35,27 @@ where
     }
 }
 
+pub enum Owned<T> {
+    Empty,
+    Mine(T),
+}
+
+impl<T> Owned<T> {
+    pub fn take(&mut self) -> T {
+        match std::mem::replace(self, Owned::Empty) {
+            Owned::Mine(t) => t,
+            Owned::Empty => panic!("Can't call take on Empty"),
+        }
+    }
+
+    pub fn as_ref(&self) -> &T {
+        match self {
+            Owned::Mine(t) => &t,
+            Owned::Empty => panic!("Can't call as_ref on Empty"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -50,3 +73,4 @@ mod tests {
         assert_eq!(watch.into_raw(), &a);
     }
 }
+

@@ -203,7 +203,7 @@ fn main() {
             .iter()
             .map(|&(_, ref rtv)| unsafe {
                 device
-                    .create_framebuffer(&task.render_pass, Some(rtv), extent)
+                    .create_framebuffer(task.render_pass(), Some(rtv), extent)
                     .unwrap()
             })
             .collect::<Vec<_>>();
@@ -287,12 +287,12 @@ fn main() {
                 command_buffer.set_scissors(0, &[viewport.rect]);
 
                 // Choose a pipeline to use.
-                command_buffer.bind_graphics_pipeline(&task.pipeline);
+                command_buffer.bind_graphics_pipeline(task.pipeline());
 
                 {
                     // Clear the screen and begin the render pass.
                     let mut encoder = command_buffer.begin_render_pass_inline(
-                        &task.render_pass,
+                        task.render_pass(),
                         &framebuffers[frame_index],
                         viewport.rect,
                         &[command::ClearValue::Color(command::ClearColor::Float([
@@ -352,7 +352,6 @@ fn main() {
         device.destroy_semaphore(frame_semaphore);
         device.destroy_semaphore(present_semaphore);
         device.destroy_command_pool(command_pool.into_raw());
-        renderer::RenderTask::destroy(task);
         for framebuffer in framebuffers {
             device.destroy_framebuffer(framebuffer);
         }

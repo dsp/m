@@ -12,6 +12,7 @@ log = "*"
 winit = "*"
 glsl-to-spirv = "*"
 image = "*"
+utils = { path = "../utils" }
 
 [dependencies.gfx-backend-vulkan]
 version = "*"
