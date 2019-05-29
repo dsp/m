@@ -14,9 +14,9 @@ where
 {
     device: &'a B::Device,
     format: f::Format,
-    pub pipeline: Owned<<B as hal::Backend>::GraphicsPipeline>,
-    pub render_pass: Owned<<B as hal::Backend>::RenderPass>,
-    pub pipeline_layout: Owned<<B as hal::Backend>::PipelineLayout>,
+    pub pipeline: InUse<<B as hal::Backend>::GraphicsPipeline>,
+    pub render_pass: InUse<<B as hal::Backend>::RenderPass>,
+    pub pipeline_layout: InUse<<B as hal::Backend>::PipelineLayout>,
     vs: Shader,
     fs: Shader,
 }
@@ -133,9 +133,9 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
         Self {
             device,
             format,
-            render_pass: Mine(render_pass),
-            pipeline_layout: Mine(pipeline_layout),
-            pipeline: Mine(pipeline),
+            render_pass: Used(render_pass),
+            pipeline_layout: Used(pipeline_layout),
+            pipeline: Used(pipeline),
             fs,
             vs,
         }

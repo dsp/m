@@ -1,4 +1,4 @@
-pub use Owned::*;
+pub use InUse::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum WatchStatus {
@@ -35,23 +35,23 @@ where
     }
 }
 
-pub enum Owned<T> {
-    Empty,
-    Mine(T),
+pub enum InUse<T> {
+    Released,
+    Used(T),
 }
 
-impl<T> Owned<T> {
+impl<T> InUse<T> {
     pub fn take(&mut self) -> T {
-        match std::mem::replace(self, Owned::Empty) {
-            Owned::Mine(t) => t,
-            Owned::Empty => panic!("Can't call take on Empty"),
+        match std::mem::replace(self, InUse::Released) {
+            InUse::Used(t) => t,
+            InUse::Released => panic!("Can't call take on Released"),
         }
     }
 
     pub fn as_ref(&self) -> &T {
         match self {
-            Owned::Mine(t) => &t,
-            Owned::Empty => panic!("Can't call as_ref on Empty"),
+            InUse::Used(t) => &t,
+            InUse::Released=> panic!("Can't call as_ref on Released"),
         }
     }
 }
