@@ -18,6 +18,7 @@ winit = "*"
 glsl-to-spirv = "*"
 image = "*"
 renderer = { path = "renderer/" }
+utils = { path = "utils/" }
 
 [dependencies.gfx-backend-vulkan]
 version = "*"

@@ -2,6 +2,7 @@ use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
+use utils::*;
 
 type SpirvBytecode = Vec<u8>;
 
@@ -19,6 +20,21 @@ pub struct Shader {
 }
 
 impl Shader {
+    pub fn watch(&self) -> Watch {
+        let buf = self.pathinfo.0.to_path_buf();
+        Watch::new(Box::new(move || {
+            let metadata = fs::metadata(&buf).unwrap();
+            let last_modified = metadata.modified().unwrap();
+            let delta = SystemTime::now().duration_since(last_modified).unwrap();
+println!("{:?} {:?}", buf, delta);
+            if delta <= Duration::from_millis(200) {
+                WatchStatus::NeedsUpdate
+            } else {
+                WatchStatus::Nothing
+            }
+        }))
+    }
+
     pub fn from_path(path: PathBuf, shader_type: ShaderType) -> Self {
         Self {
             spirv: None,

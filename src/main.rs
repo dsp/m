@@ -27,6 +27,7 @@ use gfx_hal as hal;
 // use image;
 use log::debug;
 use renderer;
+use utils::*;
 use winit;
 
 use hal::format::{ChannelType, Swizzle};
@@ -142,7 +143,7 @@ fn main() {
         None => f::Format::Rgba8Srgb,
     };
 
-    let task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
+    let mut task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
 
     // Initialize our swapchain, images, framebuffers, etc.
     // We expect to have to rebuild these when the window is resized -
@@ -183,7 +184,7 @@ fn main() {
     //
     // Here we create an image view and a framebuffer for each image in our
     // swapchain.
-    let (frameviews, framebuffers) = {
+    let (mut frameviews, mut framebuffers) = {
         let pairs = backbuffer
             .into_iter()
             .map(|image| unsafe {
@@ -218,7 +219,42 @@ fn main() {
     let frame_semaphore = device.create_semaphore().unwrap();
     let present_semaphore = device.create_semaphore().unwrap();
 
+    let mut task_watch = task.watch();
     loop {
+        if task_watch.status() == WatchStatus::NeedsUpdate {
+            debug!("recreate everything");
+            let task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
+            let swapconfig = SwapchainConfig::from_caps(&caps, format, get_dimensions(&window));
+            let (mut swapchain, backbuffer) =
+                unsafe { device.create_swapchain(&mut surface, swapconfig, None) }
+                    .expect("Can't create swapchain");
+            let (mut frameviews, mut framebuffers) = {
+                let pairs = backbuffer
+                    .into_iter()
+                    .map(|image| unsafe {
+                        let rtv = device
+                            .create_image_view(
+                                &image,
+                                i::ViewKind::D2,
+                                format,
+                                Swizzle::NO,
+                                COLOR_RANGE.clone(),
+                            )
+                            .unwrap();
+                        (image, rtv)
+                    })
+                    .collect::<Vec<_>>();
+                let fbos = pairs
+                    .iter()
+                    .map(|&(_, ref rtv)| unsafe {
+                        device
+                            .create_framebuffer(task.render_pass(), Some(rtv), extent)
+                            .unwrap()
+                    })
+                    .collect::<Vec<_>>();
+                (pairs, fbos)
+            };
+        }
         let mut quitting = false;
 
         // If the window is closed, or Escape is pressed, quit

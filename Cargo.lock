@@ -314,6 +314,7 @@ dependencies = [
  "image 0.21.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "renderer 0.1.0",
+ "utils 0.1.0",
  "winit 0.19.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

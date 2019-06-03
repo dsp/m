@@ -26,12 +26,19 @@ impl<'a, B: hal::Backend> Drop for RenderTask<'a, B> {
         unsafe {
             self.device.destroy_graphics_pipeline(self.pipeline.take());
             self.device.destroy_render_pass(self.render_pass.take());
-            self.device.destroy_pipeline_layout(self.pipeline_layout.take());
+            self.device
+                .destroy_pipeline_layout(self.pipeline_layout.take());
         }
     }
 }
 
 impl<'a, B: hal::Backend> RenderTask<'a, B> {
+    pub fn watch(&self) -> Watch {
+        let w1 = self.vs.watch();
+        let w2 = self.fs.watch();
+        Watch::new(Box::new(move || w1.status() | w2.status()))
+    }
+
     pub fn new(device: &'a B::Device, format: f::Format) -> Self {
         let color_attachment = pass::Attachment {
             format: Some(format),
