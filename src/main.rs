@@ -222,38 +222,9 @@ fn main() {
     let mut task_watch = task.watch();
     loop {
         if task_watch.status() == WatchStatus::NeedsUpdate {
-            debug!("recreate everything");
-            let task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
-            let swapconfig = SwapchainConfig::from_caps(&caps, format, get_dimensions(&window));
-            let (mut swapchain, backbuffer) =
-                unsafe { device.create_swapchain(&mut surface, swapconfig, None) }
-                    .expect("Can't create swapchain");
-            let (mut frameviews, mut framebuffers) = {
-                let pairs = backbuffer
-                    .into_iter()
-                    .map(|image| unsafe {
-                        let rtv = device
-                            .create_image_view(
-                                &image,
-                                i::ViewKind::D2,
-                                format,
-                                Swizzle::NO,
-                                COLOR_RANGE.clone(),
-                            )
-                            .unwrap();
-                        (image, rtv)
-                    })
-                    .collect::<Vec<_>>();
-                let fbos = pairs
-                    .iter()
-                    .map(|&(_, ref rtv)| unsafe {
-                        device
-                            .create_framebuffer(task.render_pass(), Some(rtv), extent)
-                            .unwrap()
-                    })
-                    .collect::<Vec<_>>();
-                (pairs, fbos)
-            };
+            debug!("reload render task");
+            task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
+            task_watch = task.watch();
         }
         let mut quitting = false;
 

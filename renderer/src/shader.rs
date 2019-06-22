@@ -1,3 +1,4 @@
+use log::debug;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -26,8 +27,7 @@ impl Shader {
             let metadata = fs::metadata(&buf).unwrap();
             let last_modified = metadata.modified().unwrap();
             let delta = SystemTime::now().duration_since(last_modified).unwrap();
-println!("{:?} {:?}", buf, delta);
-            if delta <= Duration::from_millis(200) {
+            if delta <= Duration::from_millis(100) {
                 WatchStatus::NeedsUpdate
             } else {
                 WatchStatus::Nothing
@@ -71,6 +71,7 @@ println!("{:?} {:?}", buf, delta);
     // Helper functions
 
     fn compile(path: &Path, shader_type: &ShaderType) -> std::io::Result<SpirvBytecode> {
+        debug!("compiling {:?}", path);
         let glsl = fs::read_to_string(path)?;
         let glsl_type = match shader_type {
             ShaderType::Vertex => glsl_to_spirv::ShaderType::Vertex,
