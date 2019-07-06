@@ -29,6 +29,8 @@ use log::debug;
 use renderer;
 use utils::*;
 use winit;
+use std::time::{self, Instant, Duration};
+use std::thread;
 
 use hal::format::{ChannelType, Swizzle};
 use hal::pso::PipelineStage;
@@ -47,11 +49,42 @@ struct Vertex {
     a_Uv: [f32; 2],
 }
 
+const MAX_FPS: u8  = 30;
+
 const COLOR_RANGE: i::SubresourceRange = i::SubresourceRange {
     aspects: f::Aspects::COLOR,
     levels: 0..1,
     layers: 0..1,
 };
+
+
+struct FpsLimiter {
+    start: Instant,
+    maxfps: u8,
+}
+
+impl FpsLimiter {
+    fn new(maxfps: u8) -> Self {
+        Self {
+            start: Instant::now(),
+            maxfps: maxfps,
+        }
+    }
+
+    fn start_frame(&mut self) {
+        self.start = Instant::now();
+    }
+
+    fn wait(&self) {
+        let elapsed = Instant::now().duration_since(self.start);
+        let time_per_frame = Duration::from_micros((1_000_000 / (self.maxfps as u32)) as u64);
+        // Only wait if we our elapsed frame time is shorter than what we need
+        // for our FPS. Otherise we continue right away.
+        if let Some(towait) = time_per_frame.checked_sub(elapsed) {
+            thread::sleep(towait);
+        }
+    }
+}
 
 fn get_dimensions(_window: &winit::Window) -> Extent2D {
     DIMS
@@ -220,12 +253,14 @@ fn main() {
     let present_semaphore = device.create_semaphore().unwrap();
 
     let mut task_watch = task.watch();
+    let mut fps_limiter = FpsLimiter::new(MAX_FPS);
     loop {
-        if task_watch.status() == WatchStatus::NeedsUpdate {
-            debug!("reload render task");
-            task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
-            task_watch = task.watch();
-        }
+        fps_limiter.start_frame();
+//        if task_watch.status() == WatchStatus::NeedsUpdate {
+//            debug!("reload render task");
+//            task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
+//            task_watch = task.watch();
+//        }
         let mut quitting = false;
 
         // If the window is closed, or Escape is pressed, quit
@@ -352,6 +387,7 @@ fn main() {
                 )
                 .expect("Present failed");
         }
+        fps_limiter.wait();
     }
 
     device.wait_idle().unwrap();
