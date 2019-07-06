@@ -278,6 +278,17 @@ fn main() {
                             },
                         ..
                     } => quitting = true,
+                    winit::WindowEvent::KeyboardInput {
+                        input:
+                            winit::KeyboardInput {
+                                virtual_keycode: Some(winit::VirtualKeyCode::R),
+                                ..
+                            },
+                        ..
+                    } => {
+                        task = renderer::RenderTask::<gfx_backend_vulkan::Backend>::new(&device, format);
+                        task_watch = task.watch();
+                    },
                     _ => {}
                 }
             }
