@@ -350,7 +350,7 @@ fn main() {
                     //
                     // The 0..1 is the range of instances to draw. It's not relevant
                     // unless you're using instanced rendering.
-                    encoder.draw(0..3, 0..1);
+                    encoder.draw(0..6, 0..1);
                 }
 
                 // Finish building the command buffer - it's now ready to send to the
