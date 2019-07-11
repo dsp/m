@@ -78,6 +78,31 @@ impl<'a, B: hal::Backend> RenderTask<'a, B> {
 
         let pipeline_layout = unsafe { device.create_pipeline_layout(&[], &[]).unwrap() };
 
+        /*
+        let uniform_desc = pso::DescriptorSetLayoutBinding {
+            binding: 0,
+            ty: pso::DescriptorType::UniformBuffer,
+            count: 1,
+            stage_flags: pso::ShaderStageFlags::Fragment,
+            immutable_samplers: false
+        };
+
+        let uniform_desc_pool = unsafe {
+            device.create_descriptor_pool(
+                1,
+                &[
+                    pso::DescriptorRangeDesc {
+                        ty: pso::DescriptorType::UniformBuffer,
+                        count: 1
+                    },
+                ],
+                pso::DescriptorPoolCreateFlags::empty(),
+            ).ok()
+        };
+
+        let uniform_desc = uniform_desc.create_desc_set(uniform_desc_pool.as_mut().unwrap());
+        */
+
         let vs_module = unsafe {
             device
                 .create_shader_module(&vs.spirv().expect("can't load shader"))
